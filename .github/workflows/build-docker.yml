@@ -33,7 +33,7 @@ jobs:
           docker buildx build \
             --platform linux/arm/v7 \
             -t $IMAGE_NAME \
-            -f Dockerfile.armv7 \
+            -f Dockerfile \
             --load \
             .
 
