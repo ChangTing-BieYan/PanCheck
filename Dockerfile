@@ -1,29 +1,55 @@
-# 第一阶段：前端
+# ====================================================================
+# 第一阶段：前端构建 (React)
+# ====================================================================
 FROM --platform=linux/arm/v7 node:18-alpine AS frontend-builder
+
 RUN npm install -g pnpm
+
 WORKDIR /app/frontend
+
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
+
 COPY frontend/ ./
 RUN pnpm run build
 
-# 第二阶段：后端
+# ====================================================================
+# 第二阶段：后端构建 (Go)
+# ====================================================================
 FROM --platform=linux/arm/v7 golang:1.24-alpine AS backend-builder
+
 RUN apk add --no-cache git
+
 WORKDIR /app/backend
+
 COPY go.mod go.sum ./
 RUN go mod download
+
 COPY . .
+
+# 拷贝前端构建好的静态文件
 COPY --from=frontend-builder /app/frontend/dist ./static
+
+# 构建静态 Go 二进制 (ARMv7)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -a -o main ./cmd/api
 
+# ====================================================================
 # 第三阶段：运行镜像
-FROM --platform=linux/arm/v7 alpine:latest
-RUN apk --no-cache add ca-certificates tzdata libstdc++ libgcc
+# ====================================================================
+FROM arm32v7/alpine:3.18
+
+# 安装必要依赖（避免 QEMU apk 报错）
+RUN apk add --no-cache ca-certificates tzdata
+
 ENV TZ=Asia/Shanghai
 WORKDIR /app
+
+# 拷贝后端二进制和静态文件
 COPY --from=backend-builder /app/backend/main .
 COPY --from=backend-builder /app/backend/static ./static
+
+# 创建数据目录
 RUN mkdir -p /app/data
+
 EXPOSE 8080
 CMD ["./main"]
