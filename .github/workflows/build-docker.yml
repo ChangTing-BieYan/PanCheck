@@ -10,7 +10,7 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     steps:
-      # 1️⃣ 拉取仓库代码
+      # 1️⃣ Checkout 仓库
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -26,14 +26,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4️⃣ 构建 ARMv7 镜像（先加载到本地）
+      # 4️⃣ 构建 ARMv7 镜像并加载到本地
       - name: Build ARMv7 Docker image
         run: |
           IMAGE_NAME=ghcr.io/changting-bieyan/pancheck:armv7
           docker buildx build \
             --platform linux/arm/v7 \
             -t $IMAGE_NAME \
-            -f Dockerfile \
+            -f Dockerfile.armv7 \
             --load \
             .
 
